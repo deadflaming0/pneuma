@@ -2,6 +2,15 @@
 
 A Clojure implementation of Draft NIST Special Publication 800-38G Revision 1 (Methods for Format-Preserving Encryption), featuring FF1 and FF3-1.
 
+## Installing
+
+Add the following entry to your `deps.edn`:
+
+```clj
+{:deps
+  {io.github.deadflaming0/pneuma {:git/tag "v20241125" :git/sha "df4dcb6"}}}
+```
+
 ## Using FF1
 
 ```clj
