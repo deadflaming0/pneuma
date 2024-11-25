@@ -3,14 +3,44 @@
   (:refer-clojure :exclude [key])
   (:require [clojure.spec.alpha :as s]
             [clojure.spec.gen.alpha :as gen]
-            [clojure.test :refer [are deftest]]
+            [clojure.test :refer :all]
             [clojure.test.check.clojure-test :refer [defspec]]
             [clojure.test.check.properties :as prop]
             [pneuma.api :refer [ff1-encrypt ff1-decrypt
-                                ff3-1-encrypt ff3-1-decrypt]]
+                                ff3-1-encrypt ff3-1-decrypt
+                                new-key new-ff1-tweak new-ff3-1-tweak]]
             [pneuma.specs :as specs]))
 
 ;; sample-based testing
+
+(deftest new-key-test
+  (testing "accepted key sizes"
+    (are [n]
+         (let [k (new-key n)]
+           (and (bytes? k)
+                (= n (count k))))
+      16 24 32))
+  (testing "other key sizes are not accepted"
+    (are [n]
+         (thrown? Exception (new-key n))
+      15 17 23 25 31 33)))
+
+(deftest new-ff1-tweak-test
+  (testing "accepted tweak sizes"
+    (are [n]
+         (let [tweak (new-ff1-tweak n)]
+           (and (bytes? tweak)
+                (= n (count tweak))))
+      1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16))
+  (testing "other tweak sizes are not accepted"
+    (are [n]
+         (thrown? Exception (new-ff1-tweak n))
+      0 17)))
+
+(deftest new-ff3-1-tweak-test
+  (let [tweak (new-ff3-1-tweak)]
+    (and (bytes? tweak)
+         (= 8 (count tweak)))))
 
 ;; source: https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/FF1samples.pdf
 

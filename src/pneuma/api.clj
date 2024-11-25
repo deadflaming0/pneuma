@@ -1,4 +1,5 @@
 (ns pneuma.api
+  (:import [java.security SecureRandom])
   (:require [clojure.spec.alpha :as s]
             [clojure.spec.test.alpha :as stest]
             [pneuma.internals.ff1 :as ff1]
@@ -12,6 +13,31 @@
 (defn- ->Y
   [output radix]
   (apply str (map #(.toString (BigInteger. (str %)) radix) output)))
+
+(defn- random-bytes
+  [n]
+  (let [seed (byte-array n)]
+    (.nextBytes (SecureRandom.) seed)
+    seed))
+
+(def new-key random-bytes)
+
+(s/fdef new-key
+  :args (s/cat :n specs/key-sizes)
+  :ret ::specs/key)
+
+(def new-ff1-tweak random-bytes)
+
+(s/fdef new-ff1-tweak
+  :args (s/cat :n (s/int-in 1 (inc specs/max-ff1-tweak-size)))
+  :ret ::specs/ff1.tweak)
+
+(defn new-ff3-1-tweak
+  []
+  (random-bytes 8))
+
+(s/fdef new-ff3-1-tweak
+  :ret ::specs/ff3-1.tweak)
 
 (defn ff1-encrypt
   [key tweak radix plaintext]
@@ -65,6 +91,9 @@
                :ciphertext ::specs/ciphertext)
   :ret ::specs/plaintext)
 
+(stest/instrument `new-key)
+(stest/instrument `new-ff1-tweak)
+(stest/instrument `new-ff3-1-tweak)
 (stest/instrument `ff1-encrypt)
 (stest/instrument `ff1-decrypt)
 (stest/instrument `ff3-1-encrypt)

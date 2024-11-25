@@ -12,32 +12,39 @@
                 (gen/elements sizes)
                 (fn [size] (gen/vector (gen/choose -128 127) size))))))
 
-(s/def ::key (fixed-byte-array-spec #{16 24 32}))
+(def key-sizes #{16 24 32})
+
+(s/def ::key (fixed-byte-array-spec key-sizes))
+
+(def max-ff1-tweak-size 16)
 
 (defn- flexible-byte-array-spec
   []
   (s/with-gen
-    (s/nilable #(instance? (Class/forName "[B") %))
+    (s/or :nil nil?
+          :byte-array #(and (instance? (Class/forName "[B") %)
+                            (<= (alength %) max-ff1-tweak-size)))
     #(gen/one-of
       [(gen/return nil)
        (gen/fmap byte-array
                  (gen/bind
-                  (gen/choose 1 8)
+                  (gen/choose 1 max-ff1-tweak-size)
                   (fn [size] (gen/vector (gen/choose -128 127) size))))])))
 
 (s/def ::ff1.tweak (flexible-byte-array-spec))
 
-(s/def ::ff3-1.tweak (fixed-byte-array-spec #{8}))
+(def ff3-1-tweak-sizes #{8})
 
-(s/def ::radix (s/with-gen (s/and int? #(<= 2 %) #(>= 36 %)) #(gen/choose 2 36)))
+(s/def ::ff3-1.tweak (fixed-byte-array-spec ff3-1-tweak-sizes))
 
-(defn- random-string
+(s/def ::radix (s/with-gen (s/int-in 2 37) #(gen/choose 2 36)))
+
+(defn- pseudorandom-string
   [radix]
   (let [min-length 5
         max-length 20
-        length (+ min-length (rand-int (inc (- max-length min-length))))
-        result (apply str (repeatedly length #(Character/forDigit (rand-int radix) radix)))]
-    result))
+        length (+ min-length (rand-int (inc (- max-length min-length))))]
+    (apply str (repeatedly length #(Character/forDigit (rand-int radix) radix)))))
 
 (defn plaintext-spec
   ([]
@@ -45,7 +52,7 @@
   ([radix]
    (s/with-gen
      (s/and string? #(not= % ""))
-     #(gen/fmap (fn [_] (random-string radix))
+     #(gen/fmap (fn [_] (pseudorandom-string radix))
                 (gen/return nil)))))
 
 (s/def ::plaintext (plaintext-spec))
